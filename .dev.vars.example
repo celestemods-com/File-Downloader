@@ -1,7 +1,23 @@
 # Uses the same syntax as a .env file
 
+
+
 # Cloudflare account ID
 ACCOUNT_ID=""
 
-# R2 API Key
-R2_API_KEY=""
+
+
+# Bind R2 buckets
+# Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
+
+[[r2_buckets]]
+binding = "modsBucket"
+bucket_name = ""
+
+[[r2_buckets]]
+binding = "screenshotsBucket"
+bucket_name = ""
+
+[[r2_buckets]]
+binding = "richPresenceIconsBucket"
+bucket_name = ""
