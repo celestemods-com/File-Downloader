@@ -1,0 +1,7 @@
+# Uses the same syntax as a .env file
+
+# Cloudflare account ID
+ACCOUNT_ID=""
+
+# R2 API Key
+R2_API_KEY=""
