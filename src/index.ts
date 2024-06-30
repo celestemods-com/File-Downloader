@@ -3,6 +3,9 @@
 // - Run `npm run deploy` to publish your worker
 
 
+import { type AuthenticationBindings, authenticateRequest } from "./authentication";
+
+
 const GAMEBANANA_MIRROR_DOMAIN = "celestemodupdater.celestemods.com";
 
 
@@ -30,9 +33,7 @@ type R2BucketName = typeof R2_BUCKET_NAMES[FileCategory];
 
 type R2Bindings = Record<R2BucketName, R2Bucket>;
 
-type Env = {
-
-} & R2Bindings;
+export type Env = AuthenticationBindings & R2Bindings;
 
 
 const R2_BUCKET_SUBDOMAINS = {
@@ -91,19 +92,6 @@ type ValidRequestType = typeof validRequestTypes[number];
 type ParsedRequestBody = {
 	type: ValidRequestType;
 } & (ParsedRequestBody_Put | ParsedRequestBody_Delete);
-
-
-
-
-/** This function returns HTTP status codes.
- * 200: The request is authenticated.
- * 401 or 403: The request is not authenticated.
- */
-const authenticateRequest = (request: Request, env: Env): number => {
-	return 200;
-	// TODO!!!: implement this
-	// continue here
-};
 
 
 
@@ -367,7 +355,7 @@ const handleDelete = async (request: Request, env: Env) => {
 const workerHandlers = {
 	// Handle HTTP requests from clients
 	async fetch(request: Request, env: Env, _ctx: ExecutionContext) {
-		const authenticationStatusCode = authenticateRequest(request, env);
+		const authenticationStatusCode = await authenticateRequest(request, env);
 
 		if (authenticationStatusCode !== 200) {
 			return new Response(undefined, { status: authenticationStatusCode });
