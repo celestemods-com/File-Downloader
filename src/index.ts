@@ -28,9 +28,11 @@ const R2_BUCKET_NAMES = {
 type R2BucketName = typeof R2_BUCKET_NAMES[FileCategory];
 
 
+type R2Bindings = Record<R2BucketName, R2Bucket>;
+
 type Env = {
-	r2Buckets: Record<R2BucketName, R2Bucket>;
-};
+
+} & R2Bindings;
 
 
 const R2_BUCKET_SUBDOMAINS = {
@@ -222,7 +224,7 @@ const parseRequestBody = async (request: Request, env: Env): Promise<ParsedReque
 
 	const r2BucketName = R2_BUCKET_NAMES[fileCategory];
 
-	const r2Bucket = env.r2Buckets[r2BucketName];
+	const r2Bucket = env[r2BucketName];
 
 	if (r2Bucket == undefined) {
 		return new Response("r2Bucket is undefined. This should not happen.", { status: 500 });
