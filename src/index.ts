@@ -3,9 +3,15 @@
 // - Run `npm run deploy` to publish your worker
 
 
+const GAMEBANANA_MIRROR_DOMAIN = "celestemodupdater.celestemods.com";
+
+
 const HASH_OBJECT_PREFIX = "hashes_";
 const HASH_FILE_EXTENSION = ".hash";
 const HASH_STRING_LENGTH = 16;
+
+
+const DELETE_BATCH_SIZE = 50;
 
 
 const FILE_CATEGORIES = ["mods", "screenshots", "richPresenceIcons"] as const satisfies string[];
@@ -48,15 +54,41 @@ type FileDownloadRequestBodyParameter = keyof FileDownloadRequestBody;
 const FILE_DOWNLOAD_REQUEST_BODY_REQUIRED_PARAMETERS = ["downloadURL", "fileCategory", "fileName"] as const satisfies FileDownloadRequestBodyParameter[];
 
 
-type ParsedRequestBody = {
-	downloadURL: string;
-	hash?: string;
-	fileName: string;
+type FileDeletionRequestBody = {
+	fileCategory: FileCategory;
+	fileNames: [string, ...string[]];	// non-empty string array
+};
+
+type FileDeletionRequestBodyParameter = keyof FileDeletionRequestBody;
+
+const FILE_DELETION_REQUEST_BODY_REQUIRED_PARAMETERS = ["fileCategory", "fileNames"] as const satisfies FileDeletionRequestBodyParameter[];
+
+
+type ParsedRequestBody_Base = {
 	r2: {
 		r2Bucket: R2Bucket;
 		subdomain: R2BucketSubdomain;
 	};
 };
+
+type ParsedRequestBody_Put = {
+	fileName: string;
+	downloadURL: string;
+	hash?: string;
+} & ParsedRequestBody_Base;
+
+type ParsedRequestBody_Delete = {
+	fileNames: [string, ...string[]];	// non-empty string array
+} & ParsedRequestBody_Base;
+
+
+const validRequestTypes = ["put", "delete"] as const satisfies string[];
+
+type ValidRequestType = typeof validRequestTypes[number];
+
+type ParsedRequestBody = {
+	type: ValidRequestType;
+} & (ParsedRequestBody_Put | ParsedRequestBody_Delete);
 
 
 
@@ -66,8 +98,15 @@ type ParsedRequestBody = {
  * 401 or 403: The request is not authenticated.
  */
 const authenticateRequest = (request: Request, env: Env): number => {
-	return 200;	// TODO!!!: implement this
+	return 200;
+	// TODO!!!: implement this
+	// continue here
 };
+
+
+
+
+const isFileCategory = (value: unknown): value is FileCategory => FILE_CATEGORIES.includes(value as FileCategory);
 
 
 
@@ -98,7 +137,7 @@ const isFileDownloadRequestBody = (value: unknown): value is FileDownloadRequest
 	}
 
 
-	if (!FILE_CATEGORIES.includes(obj.fileCategory as FileCategory)) {
+	if (!isFileCategory(obj.fileCategory)) {
 		return false;
 	}
 
@@ -125,17 +164,56 @@ const isFileDownloadRequestBody = (value: unknown): value is FileDownloadRequest
 
 
 
+const isFileDeletionRequestBody = (value: unknown): value is FileDeletionRequestBody => {
+	if (typeof value !== "object" || value === null) {
+		return false;
+	}
+
+	for (const parameter of FILE_DELETION_REQUEST_BODY_REQUIRED_PARAMETERS) {
+		if (!(parameter in value)) {
+			return false;
+		}
+	}
+
+	const obj = value as Record<FileDeletionRequestBodyParameter, unknown>;
+
+
+	if (!isFileCategory(obj.fileCategory)) {
+		return false;
+	}
+
+
+	if (!Array.isArray(obj.fileNames) || obj.fileNames.length === 0 || obj.fileNames.length > DELETE_BATCH_SIZE) {
+		return false;
+	}
+
+	for (const fileName of obj.fileNames) {
+		if (typeof fileName !== "string" || fileName.length === 0 || fileName.length > 255) {
+			return false;
+		}
+	}
+
+
+	return true;
+};
+
+
+
+
 const parseRequestBody = async (request: Request, env: Env): Promise<ParsedRequestBody | Response> => {
 	const requestBodyString = await request.text();
 
 	const requestBody = JSON.parse(requestBodyString);
 
-	if (!isFileDownloadRequestBody(requestBody)) {
+	const isFileDownloadRequest = isFileDownloadRequestBody(requestBody);
+	const isFileDeletionRequest = isFileDeletionRequestBody(requestBody);
+
+	if (!isFileDownloadRequest && !isFileDeletionRequest) {
 		return new Response("Invalid request body", { status: 400 });
 	}
 
 
-	const { downloadURL, hash, fileCategory, fileName } = requestBody;
+	const { fileCategory } = requestBody;
 
 	const subdomain = R2_BUCKET_SUBDOMAINS[fileCategory];
 
@@ -151,17 +229,31 @@ const parseRequestBody = async (request: Request, env: Env): Promise<ParsedReque
 	}
 
 
-	const parsedRequestBody: ParsedRequestBody = {
-		downloadURL,
-		fileName,
-		r2: {
-			r2Bucket,
-			subdomain,
-		},
+	const r2: ParsedRequestBody_Base["r2"] = {
+		r2Bucket,
+		subdomain,
 	};
 
 
-	return parsedRequestBody;
+	if (isFileDownloadRequest) {
+		const { downloadURL, hash, fileName } = requestBody;
+
+		return {
+			type: "put",
+			downloadURL,
+			hash,
+			fileName,
+			r2,
+		};
+	} else {
+		const { fileNames } = requestBody;
+
+		return {
+			type: "delete",
+			fileNames,
+			r2,
+		};
+	}
 };
 
 
@@ -178,7 +270,14 @@ const handlePut = async (request: Request, env: Env) => {
 		return parsedRequestBodyOrResponse;
 	}
 
-	const { downloadURL, hash, fileName, r2 } = parsedRequestBodyOrResponse;
+	if (parsedRequestBodyOrResponse.type !== "put") {
+		return new Response("Invalid request type", { status: 400 });
+	}
+
+	const parsedRequestBody = parsedRequestBodyOrResponse as ParsedRequestBody_Put;
+
+
+	const { downloadURL, hash, fileName, r2 } = parsedRequestBody;
 
 	const { r2Bucket, subdomain } = r2;
 
@@ -192,7 +291,7 @@ const handlePut = async (request: Request, env: Env) => {
 
 	await r2Bucket.put(fileName, fetchResponse.body);
 
-	let responseString = `Saved ${downloadURL} to https://${subdomain}.celestemodupdater.celestemods.com/${fileName.replace(/_/g, "/")}`;
+	let responseString = `Saved ${downloadURL} to https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}/${fileName.replace(/_/g, "/")}`;
 
 
 	if (hash !== undefined) {
@@ -202,7 +301,7 @@ const handlePut = async (request: Request, env: Env) => {
 
 		await r2Bucket.put(hashFileName, hash);
 
-		responseString += ` and stored its hash in https://${subdomain}.celestemodupdater.celestemods.com/${hashFileName.replace(/_/g, "/")}`;
+		responseString += ` and stored its hash in https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}/${hashFileName.replace(/_/g, "/")}`;
 	}
 
 
@@ -218,8 +317,44 @@ const handlePut = async (request: Request, env: Env) => {
  * These are for deleting content files and hashes from the R2 buckets.
  */
 const handleDelete = async (request: Request, env: Env) => {
-	// TODO!!!: implement this
-	// continue here
+	const parsedRequestBodyOrResponse = await parseRequestBody(request, env);
+
+	if (parsedRequestBodyOrResponse instanceof Response) {
+		return parsedRequestBodyOrResponse;
+	}
+
+	if (parsedRequestBodyOrResponse.type !== "delete") {
+		return new Response("Invalid request type", { status: 400 });
+	}
+
+	const parsedRequestBody = parsedRequestBodyOrResponse as ParsedRequestBody_Delete;
+
+
+	const { fileNames, r2 } = parsedRequestBody;
+
+	const { r2Bucket, subdomain } = r2;
+
+
+	console.log(`deleting ${fileNames.length} files from R2`);
+
+
+	const fileNamesAndHashFileNames: string[] = [];
+
+	fileNames.forEach(
+		(fileName) => {
+			fileNamesAndHashFileNames.push(fileName);
+
+			fileNamesAndHashFileNames.push(HASH_OBJECT_PREFIX + fileName + HASH_FILE_EXTENSION);
+		}
+	);
+
+
+	await r2Bucket.delete(fileNamesAndHashFileNames);
+
+
+	console.log(`deleted from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN} : ${fileNamesAndHashFileNames.join(", ")}`);
+
+	return new Response(`Deleted ${fileNames.length} files and their hash files from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}`);
 };
 
 
