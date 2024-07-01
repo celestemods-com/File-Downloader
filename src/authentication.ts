@@ -61,7 +61,8 @@ const base64StringToArrayBuffer = (base64String: string): ArrayBuffer => {
 };
 
 
-const importRsaKey = (publicKeyString: string): Promise<CryptoKey> => {
+/** Imports an RSA public key */
+const importPublicKey = (publicKeyString: string): Promise<CryptoKey> => {
     const binaryDer = base64StringToArrayBuffer(publicKeyString);
 
     // parse the DER-encoded binary data
@@ -102,7 +103,7 @@ const validateCredentials = async (request: Request, env: Env): Promise<number> 
     const requestBodyArrayBuffer = stringToArrayBuffer(requestBodyString);
 
 
-    const publicKey = await importRsaKey(publicKeyString);
+    const publicKey = await importPublicKey(publicKeyString);
 
     const signatureString = request.headers.get("Authorization");
 
