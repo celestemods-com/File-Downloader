@@ -3,6 +3,11 @@ import type { Env } from ".";
 
 
 
+const SALT_LENGTH = 32;
+
+
+
+
 export type AuthenticationBindings = {
     permittedIp: string;
     publicKeyString: string;
@@ -117,7 +122,7 @@ const validateCredentials = async (request: Request, env: Env): Promise<number> 
     const isVerified = await crypto.subtle.verify(
         {
             name: "RSA-PSS",
-            saltLength: 32,
+            saltLength: SALT_LENGTH,
         },
         publicKey,
         signature,
