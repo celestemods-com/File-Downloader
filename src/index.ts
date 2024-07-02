@@ -279,20 +279,25 @@ const handlePut = async (request: Request, env: Env) => {
 
 	console.log(`storing ${fileName} in R2`);
 
-	await r2Bucket.put(fileName, fetchResponse.body);
+	const r2ObjectPromise = r2Bucket.put(fileName, fetchResponse.body);
 
 	let responseString = `Saved ${downloadURL} to https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}/${fileName.replace(/_/g, "/")}`;
 
+
+	let r2HashObjectPromise: Promise<R2Object | null> | undefined;
 
 	if (hash !== undefined) {
 		const hashFileName = HASH_OBJECT_PREFIX + fileName + HASH_FILE_EXTENSION;
 
 		console.log(`storing hash for ${fileName} in R2`);
 
-		await r2Bucket.put(hashFileName, hash);
+		r2HashObjectPromise = r2Bucket.put(hashFileName, hash);
 
 		responseString += ` and stored its hash in https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}/${hashFileName.replace(/_/g, "/")}`;
 	}
+
+
+	await Promise.all([r2ObjectPromise, r2HashObjectPromise]);
 
 
 	console.log(responseString);
@@ -342,7 +347,7 @@ const handleDelete = async (request: Request, env: Env) => {
 	await r2Bucket.delete(fileNamesAndHashFileNames);
 
 
-	console.log(`deleted from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN} : ${fileNamesAndHashFileNames.join(", ")}`);
+	console.log(`Deleted from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN} : ${fileNamesAndHashFileNames.join(", ")}`);
 
 	return new Response(`Deleted ${fileNames.length} files and their hash files from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}`);
 };
