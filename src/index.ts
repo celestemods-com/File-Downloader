@@ -237,26 +237,7 @@ const isFileDeletionRequestBody = (value: unknown): value is FileDeletionRequest
 
 
 
-const parseRequestBody = async (request: Request, env: Env): Promise<ParsedRequestBody | Response> => {
-	const requestBodyString = await request.text();
-
-	const requestBody = JSON.parse(requestBodyString);
-
-	const isFileDownloadRequest = isFileDownloadRequestBody(requestBody);
-	const isFileUploadRequest = isFileUploadRequestBody(requestBody);
-	const isFileDeletionRequest = isFileDeletionRequestBody(requestBody);
-
-	if (!isFileDownloadRequest && !isFileUploadRequest && !isFileDeletionRequest) {
-		return new Response("Invalid request body", { status: 400 });
-	}
-
-	if (Number(isFileDownloadRequest) + Number(isFileUploadRequest) + Number(isFileDeletionRequest) !== 1) {
-		return new Response("Unable to determine request type", { status: 500 });
-	}
-
-
-	const { fileCategory } = requestBody;
-
+const getR2Information = (fileCategory: FileCategory, env: Env): ParsedRequestBody_Base["r2"] | Response => {
 	const subdomain = R2_BUCKET_SUBDOMAINS[fileCategory];
 
 
@@ -271,41 +252,7 @@ const parseRequestBody = async (request: Request, env: Env): Promise<ParsedReque
 	}
 
 
-	const r2: ParsedRequestBody_Base["r2"] = {
-		r2Bucket,
-		subdomain,
-	};
-
-
-	if (isFileDownloadRequest) {
-		const { fileName, downloadURL } = requestBody;
-
-		return {
-			type: "download",
-			fileName,
-			downloadURL,
-			r2,
-		};
-	} else if (isFileUploadRequest) {
-		const { fileName, file } = requestBody;
-
-		return {
-			type: "upload",
-			fileName,
-			file,
-			r2,
-		};
-	} else if (isFileDeletionRequest) {
-		const { fileNames } = requestBody;
-
-		return {
-			type: "delete",
-			fileNames,
-			r2,
-		};
-	} else {
-		return new Response("Unable to parse request body", { status: 500 });
-	}
+	return { r2Bucket, subdomain };
 };
 
 
@@ -371,22 +318,50 @@ const handleFileUpload = async (parsedRequestBody: ParsedRequestBody_Upload): Pr
  * These are for storing content files in the R2 buckets.
  */
 const handlePut = async (request: Request, env: Env): Promise<Response> => {
-	const parsedRequestBodyOrResponse = await parseRequestBody(request, env);
+	const requestBodyString = await request.text();
 
-	if (parsedRequestBodyOrResponse instanceof Response) {
-		return parsedRequestBodyOrResponse;
+	const requestBody = JSON.parse(requestBodyString);
+
+	const isFileDownloadRequest = isFileDownloadRequestBody(requestBody);
+	const isFileUploadRequest = isFileUploadRequestBody(requestBody);
+
+	if (Number(isFileDownloadRequest) + Number(isFileUploadRequest) !== 1) {
+		return new Response("Invalid request body", { status: 400 });
 	}
 
 
-	if (parsedRequestBodyOrResponse.type === "download") {
-		return handleFileDownload(parsedRequestBodyOrResponse as ParsedRequestBody_Download);
+	const { fileCategory } = requestBody;
+
+	const r2 = getR2Information(fileCategory, env);
+
+	if (r2 instanceof Response) {
+		return r2;
 	}
-	else if (parsedRequestBodyOrResponse.type === "upload") {
-		return handleFileUpload(parsedRequestBodyOrResponse as ParsedRequestBody_Upload);
-	}
-	else {
-		return new Response("Invalid request type", { status: 400 });
-	}
+	
+
+	if (isFileDownloadRequest) {
+		const { fileName, downloadURL } = requestBody;
+
+		const parsedRequestBody: ParsedRequestBody_Download = {
+			fileName,
+			downloadURL,
+			r2,
+		};
+
+		return await handleFileDownload(parsedRequestBody);
+	} else if (isFileUploadRequest) {
+		const { fileName, file } = requestBody;
+
+		const parsedRequestBody: ParsedRequestBody_Upload = {
+			fileName,
+			file,
+			r2,
+		};
+
+		return await handleFileUpload(parsedRequestBody);
+	} else {
+		return new Response("Unable to parse request body", { status: 500 });
+	}		
 };
 
 
@@ -396,20 +371,23 @@ const handlePut = async (request: Request, env: Env): Promise<Response> => {
  * These are for deleting content files from the R2 buckets.
  */
 const handleDelete = async (request: Request, env: Env): Promise<Response> => {
-	const parsedRequestBodyOrResponse = await parseRequestBody(request, env);
+	const requestBodyString = await request.text();
 
-	if (parsedRequestBodyOrResponse instanceof Response) {
-		return parsedRequestBodyOrResponse;
+	const requestBody = JSON.parse(requestBodyString);
+
+	if (!isFileDeletionRequestBody(requestBody)) {
+		return new Response("Invalid request body", { status: 400 });
 	}
 
-	if (parsedRequestBodyOrResponse.type !== "delete") {
-		return new Response("Invalid request type", { status: 400 });
+
+	const { fileCategory, fileNames } = requestBody;
+	
+
+	const r2 = getR2Information(fileCategory, env);
+
+	if (r2 instanceof Response) {
+		return r2;
 	}
-
-	const parsedRequestBody = parsedRequestBodyOrResponse as ParsedRequestBody_Delete;
-
-
-	const { fileNames, r2 } = parsedRequestBody;
 
 	const { r2Bucket, subdomain } = r2;
 
