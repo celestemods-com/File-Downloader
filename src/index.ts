@@ -83,36 +83,20 @@ const FILE_DELETION_REQUEST_BODY_REQUIRED_PARAMETERS = ["fileCategory", "fileNam
 
 
 type ParsedRequestBody_Base = {
+	fileName: string;
 	r2: {
 		r2Bucket: R2Bucket;
 		subdomain: R2BucketSubdomain;
 	};
 };
 
-type ParsedRequestBody_Put_Base = {
-	fileName: string;
-} & ParsedRequestBody_Base;
-
 type ParsedRequestBody_Download = {
 	downloadURL: string;
-} & ParsedRequestBody_Put_Base;
+} & ParsedRequestBody_Base;
 
 type ParsedRequestBody_Upload = {
 	file: string;	// base64 encoded file
-} & ParsedRequestBody_Put_Base;
-
-type ParsedRequestBody_Delete = {
-	fileNames: [string, ...string[]];	// non-empty string array
 } & ParsedRequestBody_Base;
-
-
-const VALID_REQUEST_TYPES = ["download", "upload", "delete"] as const satisfies string[];
-
-type ValidRequestType = typeof VALID_REQUEST_TYPES[number];
-
-type ParsedRequestBody = {
-	type: ValidRequestType;
-} & (ParsedRequestBody_Download | ParsedRequestBody_Upload | ParsedRequestBody_Delete);
 
 
 
