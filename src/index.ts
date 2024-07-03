@@ -54,12 +54,12 @@ type PutRequestBody_Base = {
 } & RequestBody_Base;
 
 type FileDownloadRequestBody = {
-	downloadURL: string;
+	downloadUrl: string;
 } & PutRequestBody_Base;
 
 type FileDownloadRequestBodyParameter = keyof FileDownloadRequestBody;
 
-const FILE_DOWNLOAD_REQUEST_BODY_REQUIRED_PARAMETERS = ["fileCategory", "fileName", "downloadURL"] as const satisfies FileDownloadRequestBodyParameter[];
+const FILE_DOWNLOAD_REQUEST_BODY_REQUIRED_PARAMETERS = ["fileCategory", "fileName", "downloadUrl"] as const satisfies FileDownloadRequestBodyParameter[];
 
 
 type FileUploadRequestBody = {
@@ -91,7 +91,7 @@ type ParsedRequestBody_Base = {
 };
 
 type ParsedRequestBody_Download = {
-	downloadURL: string;
+	downloadUrl: string;
 } & ParsedRequestBody_Base;
 
 type ParsedRequestBody_Upload = {
@@ -132,13 +132,13 @@ const isFileDownloadRequestBody = (value: unknown): value is FileDownloadRequest
 	}
 
 
-	if (typeof obj.downloadURL !== "string") {
+	if (typeof obj.downloadUrl !== "string") {
 		return false;
 	}
 
 	// I tried to use URL.canParse or URL.parse in the above if statement, but Typescript doesn't seem to recognize them
 	try {
-		new URL(obj.downloadURL);
+		new URL(obj.downloadUrl);
 	} catch {
 		return false;
 	}
@@ -244,14 +244,14 @@ const getR2Information = (fileCategory: FileCategory, env: Env): ParsedRequestBo
 
 /** Handles passing URLs to the Worker and having it download the file itself. */
 const handleFileDownload = async (parsedRequestBody: ParsedRequestBody_Download): Promise<Response> => {
-	const { downloadURL, fileName, r2 } = parsedRequestBody;
+	const { downloadUrl, fileName, r2 } = parsedRequestBody;
 
 	const { r2Bucket, subdomain } = r2;
 
 
-	console.log(`fetching ${downloadURL}`);
+	console.log(`fetching ${downloadUrl}`);
 
-	const fetchResponse = await fetch(downloadURL, { method: "GET" });
+	const fetchResponse = await fetch(downloadUrl, { method: "GET" });
 
 
 	console.log(`storing ${fileName} in R2`);
@@ -259,7 +259,7 @@ const handleFileDownload = async (parsedRequestBody: ParsedRequestBody_Download)
 	await r2Bucket.put(fileName, fetchResponse.body);
 
 
-	const responseString = `Saved ${downloadURL} to https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}/${fileName.replace(/_/g, "/")}`;
+	const responseString = `Saved ${downloadUrl} to https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}/${fileName.replace(/_/g, "/")}`;
 
 	console.log(responseString);
 
@@ -324,11 +324,11 @@ const handlePut = async (request: Request, env: Env): Promise<Response> => {
 	
 
 	if (isFileDownloadRequest) {
-		const { fileName, downloadURL } = requestBody;
+		const { fileName, downloadUrl } = requestBody;
 
 		const parsedRequestBody: ParsedRequestBody_Download = {
 			fileName,
-			downloadURL,
+			downloadUrl,
 			r2,
 		};
 
