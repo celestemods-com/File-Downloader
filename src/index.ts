@@ -391,7 +391,7 @@ const handleDelete = async (request: Request, env: Env): Promise<Response> => {
 
 	console.log(`Deleted from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN} : ${fileNamesAndHashFileNames.join(", ")}`);
 
-	return new Response(`Deleted ${fileNames.length} files and their hash files from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}`);
+	return new Response(`Deleted ${fileNames.length} files from https://${subdomain}.${GAMEBANANA_MIRROR_DOMAIN}`);
 };
 
 
