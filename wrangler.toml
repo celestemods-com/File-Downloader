@@ -9,3 +9,13 @@ keep_vars = true
 
 # Disable *.workers.dev subdomain
 workers_dev = false
+
+
+# Bind R2 buckets
+# Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
+
+r2_buckets = [
+    {binding = "modsBucket", bucket_name = "celestemods-mirror-mods-public"},
+    {binding = "screenshotsBucket", bucket_name = "celestemods-mirror-screenshots-public"},
+    {binding = "richPresenceIconsBucket", bucket_name = "celestemods-mirror-rich-presence-icons-public"}
+]

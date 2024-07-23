@@ -6,7 +6,7 @@
 import { type AuthenticationBindings, authenticateRequest, base64StringToArrayBuffer } from "./authentication";
 
 
-const GAMEBANANA_MIRROR_DOMAIN = "celestemodupdater.celestemods.com";
+const GAMEBANANA_MIRROR_DOMAIN = "celestemods.com";
 
 
 const DELETE_BATCH_SIZE = 50;
@@ -37,9 +37,9 @@ export type Env = {
 
 
 const R2_BUCKET_SUBDOMAINS = {
-	mods: "mods",
-	screenshots: "screenshots",
-	richPresenceIcons: "rich-presence-icons",
+	mods: "banana-mirror-mods",
+	screenshots: "banana-mirror-images",
+	richPresenceIcons: "banana-mirror-rich-presence-icons",
 } as const satisfies Record<FileCategory, string>;
 
 type R2BucketSubdomain = typeof R2_BUCKET_SUBDOMAINS[FileCategory];
@@ -247,6 +247,8 @@ const getR2Information = (fileCategory: FileCategory, env: Env): ParsedRequestBo
 
 /** Handles passing URLs to the Worker and having it download the file itself. */
 const handleFileDownload = async (parsedRequestBody: ParsedRequestBody_Download): Promise<Response> => {
+	console.log("Entering handleFileDownload");
+
 	const { downloadUrl, fileName, r2 } = parsedRequestBody;
 
 	const { r2Bucket, subdomain } = r2;
@@ -276,6 +278,8 @@ const handleFileDownload = async (parsedRequestBody: ParsedRequestBody_Download)
  * The file must be sent as a base64 encoded string, and the Worker will decode it and store it in the R2 bucket.
  */
 const handleFileUpload = async (parsedRequestBody: ParsedRequestBody_Upload): Promise<Response> => {
+	console.log("Entering handleFileUpload");
+	
 	const { fileName, file: encodedFile, r2 } = parsedRequestBody;
 
 	const { r2Bucket, subdomain } = r2;
@@ -304,8 +308,8 @@ const handleFileUpload = async (parsedRequestBody: ParsedRequestBody_Upload): Pr
 /** Handles PUT requests.
  * These are for storing content files in the R2 buckets.
  */
-const handlePut = async (request: Request, env: Env): Promise<Response> => {
-	const requestBodyString = await request.text();
+const handlePut = async (requestBodyString: string, env: Env): Promise<Response> => {
+	console.log("Entering handlePut");
 
 	const requestBody = JSON.parse(requestBodyString);
 
@@ -324,7 +328,7 @@ const handlePut = async (request: Request, env: Env): Promise<Response> => {
 	if (r2 instanceof Response) {
 		return r2;
 	}
-	
+
 
 	if (isFileDownloadRequest) {
 		const { fileName, downloadUrl } = requestBody;
@@ -348,7 +352,7 @@ const handlePut = async (request: Request, env: Env): Promise<Response> => {
 		return await handleFileUpload(parsedRequestBody);
 	} else {
 		return new Response("Unable to parse request body", { status: 500 });
-	}		
+	}
 };
 
 
@@ -357,8 +361,8 @@ const handlePut = async (request: Request, env: Env): Promise<Response> => {
 /** Handles DELETE requests.
  * These are for deleting content files from the R2 buckets.
  */
-const handleDelete = async (request: Request, env: Env): Promise<Response> => {
-	const requestBodyString = await request.text();
+const handleDelete = async (requestBodyString: string, env: Env,): Promise<Response> => {
+	console.log("Entering handleDelete");
 
 	const requestBody = JSON.parse(requestBodyString);
 
@@ -368,7 +372,7 @@ const handleDelete = async (request: Request, env: Env): Promise<Response> => {
 
 
 	const { fileCategory, fileNames } = requestBody;
-	
+
 
 	const r2 = getR2Information(fileCategory, env);
 
@@ -405,7 +409,11 @@ const handleDelete = async (request: Request, env: Env): Promise<Response> => {
 const workerHandlers = {
 	// Handle HTTP requests from clients
 	async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
-		const authenticationStatusCode = await authenticateRequest(request, env);
+		console.log("Entering fetch handler");
+
+		const requestBodyString = await request.text();
+
+		const authenticationStatusCode = await authenticateRequest(request, env, requestBodyString);
 
 		if (authenticationStatusCode !== 200) {
 			return new Response(undefined, { status: authenticationStatusCode });
@@ -414,10 +422,10 @@ const workerHandlers = {
 
 		switch (request.method) {
 			case "PUT": {
-				return await handlePut(request, env);
+				return await handlePut(requestBodyString, env);
 			}
 			case "DELETE": {
-				return await handleDelete(request, env);
+				return await handleDelete(requestBodyString, env);
 			}
 			default: {
 				return new Response("Method Not Allowed", { status: 405 });

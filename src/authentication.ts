@@ -1,16 +1,18 @@
 import type { Env } from ".";
+import { logGeneratedSignature } from "./devAuthentication";
 
 
 
 
-const SALT_LENGTH = 32;
+export const SALT_LENGTH = 32;
 
 
 
 
 export type AuthenticationBindings = {
-    PERMITTED_IP: string;
+    PERMITTED_IPS: string;
     PUBLIC_KEY_STRING: string;
+    PRIVATE_KEY_STRING?: string;
 };
 
 
@@ -20,9 +22,18 @@ const validateIp = (request: Request, env: Env): boolean => {
     if (env.ENVIRONMENT === "dev") return true;
 
 
-    const permittedIp = env["PERMITTED_IP"];
+    const permittedIpsString = env["PERMITTED_IPS"];
 
-    if (permittedIp === undefined) {
+    if (permittedIpsString === undefined) {
+        return false;
+    }
+
+
+    const permittedIpsArray = permittedIpsString.split(",");
+
+    if (permittedIpsArray.length === 0) {
+        console.warn("No permitted IPs");
+
         return false;
     }
 
@@ -34,13 +45,16 @@ const validateIp = (request: Request, env: Env): boolean => {
     }
 
 
-    return requestIp === permittedIp;
+    const isValidIp = permittedIpsArray.includes(requestIp);
+
+
+    return isValidIp;
 };
 
 
 
 
-const stringToArrayBuffer = (string: string) => {
+export const stringToArrayBuffer = (string: string) => {
     const stringLength = string.length;
 
 
@@ -85,6 +99,8 @@ const importPublicKey = (publicKeyString: string): Promise<CryptoKey> => {
         ["verify"],
     );
 
+    console.log("successfully imported public key");
+
 
     return publicKey;
 };
@@ -98,22 +114,32 @@ const importPublicKey = (publicKeyString: string): Promise<CryptoKey> => {
  */
 
 // based on https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey#subjectpublickeyinfo_import
-const validateCredentials = async (request: Request, env: Env): Promise<number> => {
+const validateCredentials = async (request: Request, env: Env, requestBodyString: string): Promise<number> => {
     const publicKeyString = env["PUBLIC_KEY_STRING"];
 
     if (publicKeyString === undefined) {
+        console.error("Public key undefined");
         return 500;
     }
 
 
-    const requestBodyString = await request.text();
-
     const requestBodyArrayBuffer = stringToArrayBuffer(requestBodyString);
 
 
-    const publicKey = await importPublicKey(publicKeyString);
+    let publicKey: CryptoKey;
+    try {
+        publicKey = await importPublicKey(publicKeyString);
+    } catch (error) {
+        console.error(error);
+        return 500;
+    }
+
+    
+    if (env.ENVIRONMENT === "dev") await logGeneratedSignature(env, requestBodyString);
 
     const signatureString = request.headers.get("Authorization");
+
+    console.log(`requestBodyString: ${requestBodyString}`);
 
     if (signatureString === null) {
         return 401;
@@ -132,6 +158,8 @@ const validateCredentials = async (request: Request, env: Env): Promise<number> 
         requestBodyArrayBuffer,
     );
 
+    console.log(`isVerified: ${isVerified}`);
+
     if (!isVerified) {
         return 403;
     }
@@ -148,7 +176,9 @@ const validateCredentials = async (request: Request, env: Env): Promise<number> 
  * 401 or 403: The request is not authenticated.
  * 500: Other error.
  */
-export const authenticateRequest = async (request: Request, env: Env): Promise<number> => {
+export const authenticateRequest = async (request: Request, env: Env, requestBodyString: string): Promise<number> => {
+    console.log("authenticating request");
+
     const isIpValid = validateIp(request, env);
 
     if (!isIpValid) {
@@ -156,7 +186,7 @@ export const authenticateRequest = async (request: Request, env: Env): Promise<n
     }
 
 
-    const validationStatusCode = await validateCredentials(request, env);
+    const validationStatusCode = await validateCredentials(request, env, requestBodyString);
 
 
     return validationStatusCode;

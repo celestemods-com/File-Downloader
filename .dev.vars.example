@@ -1,30 +1,14 @@
 # Uses the same syntax as a .env file
 
 
-ENVIRONMENT="dev"
+ENVIRONMENT=""
 
 
-# Cloudflare account ID
-ACCOUNT_ID=""
+# Comma separated list of permitted IPs
+PERMITTED_IPS=""
 
-
-# Requester IP for permitted requests
-PERMITTED_IP=""
 # Base64 encoded public key for authorized requests
 PUBLIC_KEY_STRING=""
 
-
-# Bind R2 buckets
-# Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
-
-[[r2_buckets]]
-binding = "modsBucket"
-bucket_name = ""
-
-[[r2_buckets]]
-binding = "screenshotsBucket"
-bucket_name = ""
-
-[[r2_buckets]]
-binding = "richPresenceIconsBucket"
-bucket_name = ""
+# Base64 encoded private key for use in development mode
+PRIVATE_KEY_STRING=""
