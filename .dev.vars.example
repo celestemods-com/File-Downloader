@@ -1,6 +1,8 @@
 # Uses the same syntax as a .env file
 
 
+ENVIRONMENT="dev"
+
 
 # Cloudflare account ID
 ACCOUNT_ID=""

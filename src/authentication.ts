@@ -17,6 +17,9 @@ export type AuthenticationBindings = {
 
 
 const validateIp = (request: Request, env: Env): boolean => {
+    if (env.ENVIRONMENT === "dev") return true;
+
+
     const permittedIp = env["PERMITTED_IP"];
 
     if (permittedIp === undefined) {
