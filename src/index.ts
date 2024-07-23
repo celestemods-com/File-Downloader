@@ -30,6 +30,7 @@ type R2BucketName = typeof R2_BUCKET_NAMES[FileCategory];
 
 type R2Bindings = Record<R2BucketName, R2Bucket>;
 
+
 export type Env = AuthenticationBindings & R2Bindings;
 
 

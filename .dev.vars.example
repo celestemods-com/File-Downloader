@@ -6,6 +6,11 @@
 ACCOUNT_ID=""
 
 
+# Requester IP for permitted requests
+PERMITTED_IP=""
+# Base64 encoded public key for authorized requests
+PUBLIC_KEY_STRING=""
+
 
 # Bind R2 buckets
 # Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/

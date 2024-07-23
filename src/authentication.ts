@@ -9,15 +9,15 @@ const SALT_LENGTH = 32;
 
 
 export type AuthenticationBindings = {
-    permittedIp: string;
-    publicKeyString: string;
+    PERMITTED_IP: string;
+    PUBLIC_KEY_STRING: string;
 };
 
 
 
 
 const validateIp = (request: Request, env: Env): boolean => {
-    const permittedIp = env["permittedIp"];
+    const permittedIp = env["PERMITTED_IP"];
 
     if (permittedIp === undefined) {
         return false;
@@ -96,7 +96,7 @@ const importPublicKey = (publicKeyString: string): Promise<CryptoKey> => {
 
 // based on https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey#subjectpublickeyinfo_import
 const validateCredentials = async (request: Request, env: Env): Promise<number> => {
-    const publicKeyString = env["publicKeyString"];
+    const publicKeyString = env["PUBLIC_KEY_STRING"];
 
     if (publicKeyString === undefined) {
         return 500;
