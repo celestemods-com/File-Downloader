@@ -30,11 +30,12 @@ export const validateIp = (request: Request, env: Env): boolean => {
     }
 
 
-    console.log(`requestIp: ${requestIp}`);
-    console.log(`permittedIpsArray: ${permittedIpsArray}`);
-
-
     const isValidIp = permittedIpsArray.includes(requestIp);
+
+
+    console.log(`requestIp: ${requestIp}`);
+    // console.log(`permittedIpsString: ${permittedIpsString}`);
+    // console.log(`permittedIpsArray: ${JSON.stringify(permittedIpsArray)}`);
 
 
     return isValidIp;
