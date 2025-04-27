@@ -1,0 +1,8 @@
+{
+	"recommendations": [
+        "visualstudioexptteam.vscodeintellicode",
+        "christian-kohler.npm-intellisense",
+		"bierner.github-markdown-preview",
+		"bierner.markdown-preview-github-styles"
+	]
+}
