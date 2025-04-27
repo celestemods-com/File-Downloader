@@ -1,44 +1,44 @@
 {
-    "name": "file-downloader",
-    "main": "./src/index.ts",
-    "compatibility_date": "2023-08-23",
+	"name": "file-downloader",
+	"main": "./src/index.ts",
+	"compatibility_date": "2023-08-23",
 
-    // Prevent Wrangler from overriding variables changed from the Cloudflare dashboard
-    "keep_vars": true,
+	// Prevent Wrangler from overriding variables changed from the Cloudflare dashboard
+	"keep_vars": true,
 
-    // Disable *.workers.dev subdomain
-    "workers_dev": false,
+	// Disable *.workers.dev subdomain
+	"workers_dev": false,
 
-    // Disable *-file-downloader.otobot1.workers.dev preview URLs
-    // Docs: https://developers.cloudflare.com/workers/configuration/previews/
-    "preview_urls": false,
+	// Disable *-file-downloader.otobot1.workers.dev preview URLs
+	// Docs: https://developers.cloudflare.com/workers/configuration/previews/
+	"preview_urls": false,
 
-    // Specify route(s) to run worker on.
-    "route": {
-        "pattern": "banana-mirror-worker-file-downloader.celestemods.com",
-        "custom_domain": true
-    },
+	// Specify route(s) to run worker on.
+	"route": {
+		"pattern": "banana-mirror-worker-file-downloader.celestemods.com",
+		"custom_domain": true
+	},
 
-    // Enable request logging
-    "observability": {
-        "enabled": true,
-        "head_sampling_rate": 1 // the fraction of requests that will be logged. 1 = 100%. optional. default = 1.
-    },
+	// Enable request logging
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1 // the fraction of requests that will be logged. 1 = 100%. optional. default = 1.
+	},
 
-    // Bind R2 buckets
-    // Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
-    "r2_buckets": [
-        {
-            "binding": "modsBucket",
-            "bucket_name": "celestemods-mirror-mods-public"
-        },
-        {
-            "binding": "screenshotsBucket",
-            "bucket_name": "celestemods-mirror-screenshots-public"
-        },
-        {
-            "binding": "richPresenceIconsBucket",
-            "bucket_name": "celestemods-mirror-rich-presence-icons-public"
-        }
-    ]
+	// Bind R2 buckets
+	// Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
+	"r2_buckets": [
+		{
+			"binding": "modsBucket",
+			"bucket_name": "celestemods-mirror-mods-public"
+		},
+		{
+			"binding": "screenshotsBucket",
+			"bucket_name": "celestemods-mirror-screenshots-public"
+		},
+		{
+			"binding": "richPresenceIconsBucket",
+			"bucket_name": "celestemods-mirror-rich-presence-icons-public"
+		}
+	]
 }
