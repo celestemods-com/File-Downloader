@@ -9,6 +9,10 @@
     // Disable *.workers.dev subdomain
     "workers_dev": false,
 
+    // Disable *-file-downloader.otobot1.workers.dev preview URLs
+    // Docs: https://developers.cloudflare.com/workers/configuration/previews/
+    "preview_urls": false,
+
     // Specify route(s) to run worker on.
     "route": {
         "pattern": "banana-mirror-worker-file-downloader.celestemods.com",
