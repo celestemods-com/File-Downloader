@@ -10,7 +10,6 @@ keep_vars = true
 # Disable *.workers.dev subdomain
 workers_dev = false
 
-
 # Bind R2 buckets
 # Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
 
@@ -19,3 +18,8 @@ r2_buckets = [
     {binding = "screenshotsBucket", bucket_name = "celestemods-mirror-screenshots-public"},
     {binding = "richPresenceIconsBucket", bucket_name = "celestemods-mirror-rich-presence-icons-public"}
 ]
+
+# Enable request logging
+[observability]
+enabled = true
+head_sampling_rate = 1 # the fraction of requests that will be logged. 1 = 100%. optional. default = 1.
