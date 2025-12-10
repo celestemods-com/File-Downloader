@@ -4,6 +4,15 @@
 ENVIRONMENT=""
 
 
+# ID for the celestemods.com Cloudflare zone.
+CLOUDFLARE_ZONE_ID=""
+
+# Access token for purging celestemods.com's Cloudflare CDN cache
+CLOUDFLARE_CACHE_PURGE_API_TOKEN=""
+
+
+# Authentication Bindings
+
 # Comma separated list of permitted IPs
 PERMITTED_IPS=""
 

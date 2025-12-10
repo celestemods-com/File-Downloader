@@ -15,6 +15,8 @@ export type ParsedRequestBody_Base = {
 
 export type Env = {
 	ENVIRONMENT?: string;
+	CLOUDFLARE_ZONE_ID?: string;
+	CLOUDFLARE_CACHE_PURGE_API_TOKEN?: string;
 } & AuthenticationBindings & R2Bindings;
 
 
